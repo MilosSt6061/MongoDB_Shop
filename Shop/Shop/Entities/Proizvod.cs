@@ -20,8 +20,5 @@ namespace Shop.Entities
 
         [BsonElement("kategorijaID")]
         public string KategorijaID { get; set; } = string.Empty;
-
-        [BsonElement("inventarID")]
-        public string InventarID { get; set; } = string.Empty;
     }
 }

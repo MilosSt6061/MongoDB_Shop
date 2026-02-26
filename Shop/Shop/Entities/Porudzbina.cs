@@ -1,5 +1,6 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
+using Shop.DTO;
 
 namespace Shop.Entities
 {
@@ -22,6 +23,7 @@ namespace Shop.Entities
         public DateTime VremeKreiranja { get; set; }
 
         [BsonElement("status")]
-        public int status { get; set; }
+        [BsonRepresentation(BsonType.String)]
+        public Status Status { get; set; }
     }
 }
