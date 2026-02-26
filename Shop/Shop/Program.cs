@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using WebShop.Configuration;
 using MongoDB.Driver;
+using Shop.Providers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddSingleton<ProizvodProvider>();
+builder.Services.AddSingleton<InventarProvider>();
+builder.Services.AddSingleton<KategorijaProvider>();
 
 builder.Services.Configure<MongoDbSettings>(
     builder.Configuration.GetSection("MongoDbSettings"));

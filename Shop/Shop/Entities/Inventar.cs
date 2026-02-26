@@ -15,5 +15,7 @@ namespace Shop.Entities
         [BsonElement("kolicina")]
         public int Kolicina { get; set; } = 0;
 
+        [BsonElement("rezervisanaKolicina")]
+        public int RezervisanaKolicina { get; set; } = 0;
     }
 }
