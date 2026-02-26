@@ -28,5 +28,8 @@ namespace Shop.Entities
         [BsonElement("lozinka")]
         public string Lozinka { get; set; } = string.Empty;
 
+        [BsonElement("uloga")]
+        public string Uloga { get; set; } = string.Empty;
+
     }
 }

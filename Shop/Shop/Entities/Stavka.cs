@@ -21,6 +21,5 @@ namespace Shop.Entities
         [BsonElement("cena")]
         public int Cena { get; set; } = 0;
 
-
     }
 }
