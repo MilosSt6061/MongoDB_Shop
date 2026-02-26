@@ -84,6 +84,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddSingleton<ProizvodProvider>();
+builder.Services.AddSingleton<InventarProvider>();
+builder.Services.AddSingleton<KategorijaProvider>();
 builder.Services.AddSingleton<KorisnikProvider>();
 builder.Services.AddSingleton<PorudzbinaProvider>();
 builder.Services.AddSingleton<KorpaProvider>();
