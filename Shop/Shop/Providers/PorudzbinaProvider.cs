@@ -67,6 +67,12 @@ namespace Shop.Providers
 
             bool inv_changed = false;
 
+            if (status == Status.POSLATA && p.Status == Status.PRIHVACENA)
+            {
+                p.Status = status;
+                var result = await _porudzbine.ReplaceOneAsync(p => p.Id == id, p);
+                return result.ModifiedCount > 0;
+            }
             if (status == Status.PRIHVACENA && p.Status == Status.NA_CEKANJU)
             {
                 List<Inventar> inv = new List<Inventar>();
@@ -91,7 +97,7 @@ namespace Shop.Providers
                 if (updates.Count > 0)
                 {
                     var result = await _inventar.BulkWriteAsync(updates);
-                    inv_changed = result.ProcessedRequests.Count > 0;
+                    inv_changed = result.ModifiedCount > 0;
                 }
             }
 
@@ -119,7 +125,7 @@ namespace Shop.Providers
                 if (updates.Count > 0)
                 {
                     var result = await _inventar.BulkWriteAsync(updates);
-                    inv_changed = result.ProcessedRequests.Count > 0;
+                    inv_changed = result.ModifiedCount > 0;
                 }
             }
 
@@ -148,7 +154,7 @@ namespace Shop.Providers
                 if (updates.Count > 0)
                 {
                     var result = await _inventar.BulkWriteAsync(updates);
-                    inv_changed = result.ProcessedRequests.Count > 0;
+                    inv_changed = result.ModifiedCount > 0;
                 }
             }
 
@@ -176,12 +182,13 @@ namespace Shop.Providers
                 if (updates.Count > 0)
                 {
                     var result = await _inventar.BulkWriteAsync(updates);
-                    inv_changed = result.ProcessedRequests.Count > 0;
+                    inv_changed = result.ModifiedCount > 0;
                 }
             }
 
             if (inv_changed) 
             {
+                p.Status = status;
                 var result = await _porudzbine.ReplaceOneAsync(p => p.Id == id, p);
                 return result.ModifiedCount > 0;
             }
