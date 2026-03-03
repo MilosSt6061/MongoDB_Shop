@@ -153,7 +153,7 @@ namespace Cinema.Controllers
         }
         //[Authorize]
         [HttpPut("EditPassword")]
-        public async Task<IActionResult> EditPassword([FromQuery] string username, [FromQuery] string oldPassword, [FromQuery] string newPassword)
+        public async Task<IActionResult> EditPassword([FromQuery] string username, string oldPassword, string newPassword)
         {
             try
             {
