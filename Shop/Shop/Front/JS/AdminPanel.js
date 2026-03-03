@@ -4,7 +4,7 @@ export class AdminPanel {
     constructor(host, onLogout) {
         this.host       = host;
         this.onLogout   = onLogout;
-        this.aktivniTab = "proizvodi"; // "proizvodi" | "korisnici"
+        this.aktivniTab = "proizvodi";
         this.kategorije = [];
         this.headers    = {
             "Content-Type": "application/json",
@@ -21,7 +21,7 @@ export class AdminPanel {
         pageWrapper.className = "sp-page-wrapper";
         this.host.appendChild(pageWrapper);
 
-        //  HEADER 
+        // HEADER
         const header = document.createElement("div");
         header.className = "sp-header";
 
@@ -33,8 +33,10 @@ export class AdminPanel {
         headerNav.className = "sp-header-nav";
 
         const tabItems = [
-            { label: "PROIZVODI", icon: "fa-box",       tab: "proizvodi" },
-            { label: "KORISNICI", icon: "fa-users",     tab: "korisnici" },
+            { label: "PROIZVODI",  icon: "fa-box",       tab: "proizvodi"  },
+            { label: "KATEGORIJE", icon: "fa-th-large",  tab: "kategorije" },
+            { label: "PORUDŽBINE", icon: "fa-list-alt",  tab: "porudzbine" },
+            { label: "KORISNICI",  icon: "fa-users",     tab: "korisnici"  },
         ];
 
         tabItems.forEach(item => {
@@ -56,13 +58,11 @@ export class AdminPanel {
         header.appendChild(headerNav);
         pageWrapper.appendChild(header);
 
-        //  MAIN CONTENT 
         const main = document.createElement("div");
         main.className = "admin-main";
         main.id = "admin-main";
         pageWrapper.appendChild(main);
 
-        //  FOOTER 
         const footer = document.createElement("div");
         footer.className = "market-footer";
         footer.innerHTML = `
@@ -73,7 +73,6 @@ export class AdminPanel {
         `;
         pageWrapper.appendChild(footer);
 
-        // Ucitaj kategorije pa prikazi tab
         await this.ucitajKategorije();
         this.renderTab();
     }
@@ -86,11 +85,15 @@ export class AdminPanel {
     }
 
     renderTab() {
-        if (this.aktivniTab === "proizvodi") this.renderProizvodi();
-        else this.renderKorisnici();
+        if      (this.aktivniTab === "proizvodi")  this.renderProizvodi();
+        else if (this.aktivniTab === "kategorije") this.renderKategorije();
+        else if (this.aktivniTab === "porudzbine") this.renderPorudzbine();
+        else if (this.aktivniTab === "korisnici")  this.renderKorisnici();
     }
 
-    //  TAB: PROIZVODI
+    // ================================================================
+    // TAB: PROIZVODI
+    // ================================================================
     async renderProizvodi() {
         const main = document.getElementById("admin-main");
         main.innerHTML = `<div class="admin-loading"><i class="fas fa-spinner fa-spin"></i> Ucitavanje...</div>`;
@@ -102,7 +105,6 @@ export class AdminPanel {
 
             main.innerHTML = "";
 
-            //  TOOLBAR 
             const toolbar = document.createElement("div");
             toolbar.className = "admin-toolbar";
 
@@ -119,7 +121,6 @@ export class AdminPanel {
             toolbar.appendChild(dodajBtn);
             main.appendChild(toolbar);
 
-            //  TABELA 
             const tableWrap = document.createElement("div");
             tableWrap.className = "admin-table-wrap";
 
@@ -192,12 +193,16 @@ export class AdminPanel {
         }
     }
 
-    //  DODAJ / IZMENI PROIZVOD 
     drawProizvodModal(p, trenutnaKolicina = 0) {
         const stari = document.getElementById("admin-modal-overlay");
         if (stari) stari.remove();
 
         const jeNovi = p === null;
+
+        const katOptions = this.kategorije.map(k =>
+            `<option value="${k.id}" ${p?.kategorijaID === k.id ? "selected" : ""}>${k.naziv}</option>`
+        ).join("");
+
         const overlay = document.createElement("div");
         overlay.id = "admin-modal-overlay";
         overlay.className = "modal-overlay";
@@ -205,22 +210,6 @@ export class AdminPanel {
 
         const modal = document.createElement("div");
         modal.className = "modal-box admin-modal-box";
-
-        const closeBtn = document.createElement("button");
-        closeBtn.className = "modal-close";
-        closeBtn.innerHTML = "&times;";
-        closeBtn.onclick = () => overlay.remove();
-
-        const title = document.createElement("h2");
-        title.className = "modal-title";
-        title.innerHTML = jeNovi
-            ? '<i class="fas fa-plus-circle"></i> Dodaj proizvod'
-            : '<i class="fas fa-edit"></i> Izmeni proizvod';
-
-        const katOptions = this.kategorije.map(k =>
-            `<option value="${k.id}" ${p?.kategorijaID === k.id ? "selected" : ""}>${k.naziv}</option>`
-        ).join("");
-
         modal.innerHTML = `
             <button class="modal-close" id="admin-modal-close">&times;</button>
             <h2 class="modal-title">
@@ -261,7 +250,6 @@ export class AdminPanel {
         `;
 
         modal.querySelector("#admin-modal-close").onclick = () => overlay.remove();
-
         modal.querySelector("#admin-proizvod-form").onsubmit = async (e) => {
             e.preventDefault();
             await this.sacuvajProizvod(p, modal);
@@ -269,7 +257,6 @@ export class AdminPanel {
 
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
-
         requestAnimationFrame(() => {
             overlay.classList.add("modal-visible");
             modal.classList.add("modal-in");
@@ -290,30 +277,24 @@ export class AdminPanel {
         }
 
         this.setAdmMsg(msgEl, "loading", "Cuvanje...");
-
         const jeNovi = postojeci === null;
 
         try {
             if (jeNovi) {
-                //  sa kolicinom u URL
-                const noviProizvod = { naziv, opis, cena, kategorijaID: katID };
                 const res = await fetch(`${API_URL}/Proizvod/KreirajProizvodInvetar/${kolicina}`, {
                     method:  "POST",
                     headers: this.headers,
-                    body:    JSON.stringify(noviProizvod)
+                    body:    JSON.stringify({ naziv, opis, cena, kategorijaID: katID })
                 });
                 if (!res.ok) throw new Error(await res.text());
             } else {
-                //  izmena proizvoda
-                const izmenjeni = { id: postojeci.id, naziv, opis, cena, kategorijaID: katID };
                 const res = await fetch(`${API_URL}/Proizvod/IzmeniProizvod`, {
                     method:  "PUT",
                     headers: this.headers,
-                    body:    JSON.stringify(izmenjeni)
+                    body:    JSON.stringify({ id: postojeci.id, naziv, opis, cena, kategorijaID: katID })
                 });
                 if (!res.ok) throw new Error(await res.text());
 
-                // Izmeni kolicinu u inventaru
                 const invRes = await fetch(`${API_URL}/Inventar/IzmeniKolicinuProizvoda/${postojeci.id}/${kolicina}`, {
                     method: "PUT", headers: this.headers
                 });
@@ -346,6 +327,342 @@ export class AdminPanel {
                 tr.classList.add("admin-row-removing");
                 setTimeout(() => this.renderProizvodi(), 350);
             } else {
+                alert(`Greska: ${await res.text()}`);
+                tr.style.opacity = "1";
+                tr.style.pointerEvents = "auto";
+            }
+        } catch {
+            tr.style.opacity = "1";
+            tr.style.pointerEvents = "auto";
+        }
+    }
+
+    // ================================================================
+    // TAB: KATEGORIJE
+    // ================================================================
+    async renderKategorije() {
+        const main = document.getElementById("admin-main");
+        main.innerHTML = `<div class="admin-loading"><i class="fas fa-spinner fa-spin"></i> Ucitavanje...</div>`;
+
+        try {
+            await this.ucitajKategorije();
+            main.innerHTML = "";
+
+            const toolbar = document.createElement("div");
+            toolbar.className = "admin-toolbar";
+
+            const titleEl = document.createElement("div");
+            titleEl.className = "admin-section-title";
+            titleEl.innerHTML = `<i class="fas fa-th-large"></i> Kategorije <span class="admin-count">${this.kategorije.length}</span>`;
+
+            const dodajBtn = document.createElement("button");
+            dodajBtn.className = "admin-add-btn";
+            dodajBtn.innerHTML = '<i class="fas fa-plus"></i> Dodaj kategoriju';
+            dodajBtn.onclick = () => this.drawKategorijaModal(null);
+
+            toolbar.appendChild(titleEl);
+            toolbar.appendChild(dodajBtn);
+            main.appendChild(toolbar);
+
+            const tableWrap = document.createElement("div");
+            tableWrap.className = "admin-table-wrap";
+
+            if (this.kategorije.length === 0) {
+                tableWrap.innerHTML = `
+                    <div class="admin-empty">
+                        <i class="fas fa-th-large"></i>
+                        <p>Nema kategorija. Dodaj prvu!</p>
+                    </div>`;
+            } else {
+                const table = document.createElement("table");
+                table.className = "admin-table";
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Naziv</th>
+                            <th>Opis</th>
+                            <th>Akcije</th>
+                        </tr>
+                    </thead>
+                `;
+                const tbody = document.createElement("tbody");
+
+                this.kategorije.forEach(k => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td class="admin-td-naziv">${k.naziv}</td>
+                        <td class="admin-td-opis">${k.opis || "—"}</td>
+                        <td class="admin-td-akcije">
+                            <button class="admin-btn admin-btn-edit" title="Izmeni"><i class="fas fa-edit"></i></button>
+                            <button class="admin-btn admin-btn-delete" title="Obrisi"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    tr.querySelector(".admin-btn-edit").onclick   = () => this.drawKategorijaModal(k);
+                    tr.querySelector(".admin-btn-delete").onclick = () => this.obrisiKategoriju(k, tr);
+                    tbody.appendChild(tr);
+                });
+
+                table.appendChild(tbody);
+                tableWrap.appendChild(table);
+            }
+
+            main.appendChild(tableWrap);
+
+        } catch (err) {
+            document.getElementById("admin-main").innerHTML = `
+                <div class="admin-error"><i class="fas fa-exclamation-triangle"></i> ${err.message}</div>`;
+        }
+    }
+
+    drawKategorijaModal(k) {
+        const stari = document.getElementById("admin-modal-overlay");
+        if (stari) stari.remove();
+
+        const jeNova = k === null;
+        const overlay = document.createElement("div");
+        overlay.id = "admin-modal-overlay";
+        overlay.className = "modal-overlay";
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+        const modal = document.createElement("div");
+        modal.className = "modal-box admin-modal-box";
+        modal.innerHTML = `
+            <button class="modal-close" id="kat-modal-close">&times;</button>
+            <h2 class="modal-title">
+                <i class="fas ${jeNova ? "fa-plus-circle" : "fa-edit"}"></i>
+                ${jeNova ? "Dodaj kategoriju" : "Izmeni kategoriju"}
+            </h2>
+            <form class="modal-form admin-modal-form" id="kat-form">
+                <div class="profil-form-group">
+                    <label><i class="fas fa-tag"></i> Naziv</label>
+                    <input type="text" id="kat-naziv" value="${k?.naziv || ""}" placeholder="Naziv kategorije" required />
+                </div>
+                <div class="profil-form-group">
+                    <label><i class="fas fa-align-left"></i> Opis</label>
+                    <textarea id="kat-opis" placeholder="Opis kategorije" rows="3">${k?.opis || ""}</textarea>
+                </div>
+                <div class="profil-msg" id="kat-msg" style="display:none"></div>
+                <button type="submit" class="profil-save-btn" style="margin-top:8px">
+                    <i class="fas fa-save"></i> ${jeNova ? "DODAJ" : "SACUVAJ"}
+                </button>
+            </form>
+        `;
+
+        modal.querySelector("#kat-modal-close").onclick = () => overlay.remove();
+        modal.querySelector("#kat-form").onsubmit = async (e) => {
+            e.preventDefault();
+            const msgEl = modal.querySelector("#kat-msg");
+            const naziv = modal.querySelector("#kat-naziv").value.trim();
+            const opis  = modal.querySelector("#kat-opis").value.trim();
+
+            if (!naziv) { this.setAdmMsg(msgEl, "error", "Naziv je obavezan."); return; }
+            this.setAdmMsg(msgEl, "loading", "Cuvanje...");
+
+            try {
+                const body = jeNova ? { naziv, opis } : { id: k.id, naziv, opis };
+                const res = await fetch(
+                    jeNova ? `${API_URL}/Kategorija/KreirajKategoriju` : `${API_URL}/Kategorija/IzmeniKategoriju`,
+                    { method: jeNova ? "POST" : "PUT", headers: this.headers, body: JSON.stringify(body) }
+                );
+                if (!res.ok) throw new Error(await res.text());
+                this.setAdmMsg(msgEl, "success", jeNova ? "Kategorija dodana!" : "Izmene sacuvane!");
+                setTimeout(() => { overlay.remove(); this.renderKategorije(); }, 800);
+            } catch (err) {
+                this.setAdmMsg(msgEl, "error", `Greska: ${err.message}`);
+            }
+        };
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        requestAnimationFrame(() => {
+            overlay.classList.add("modal-visible");
+            modal.classList.add("modal-in");
+        });
+    }
+
+    async obrisiKategoriju(k, tr) {
+        if (!confirm(`Obrisati kategoriju "${k.naziv}"?`)) return;
+        tr.style.opacity = "0.4";
+        tr.style.pointerEvents = "none";
+        try {
+            const res = await fetch(`${API_URL}/Kategorija/ObrisiKategoriju/${k.id}`, {
+                method: "DELETE", headers: this.headers
+            });
+            if (res.ok) {
+                tr.classList.add("admin-row-removing");
+                setTimeout(() => this.renderKategorije(), 350);
+            } else {
+                alert(`Greska: ${await res.text()}`);
+                tr.style.opacity = "1";
+                tr.style.pointerEvents = "auto";
+            }
+        } catch {
+            tr.style.opacity = "1";
+            tr.style.pointerEvents = "auto";
+        }
+    }
+
+    // ================================================================
+    // TAB: PORUDŽBINE
+    // ================================================================
+    async renderPorudzbine() {
+        const main = document.getElementById("admin-main");
+        main.innerHTML = `<div class="admin-loading"><i class="fas fa-spinner fa-spin"></i> Ucitavanje...</div>`;
+
+        try {
+            const resK = await fetch(`${API_URL}/Korisnik/SviKorisnici`, { headers: this.headers });
+            if (!resK.ok) throw new Error(`HTTP ${resK.status}`);
+            const korisnici = await resK.json();
+
+            const svePorArr = await Promise.all(
+                korisnici.map(k =>
+                    fetch(`${API_URL}/Porudzbina/Porudzbine/${k.username}`, { headers: this.headers })
+                        .then(r => r.ok ? r.json() : []).catch(() => [])
+                )
+            );
+
+            const svePorudzbine = svePorArr.flat()
+                .sort((a, b) => new Date(b.vremeKreiranja) - new Date(a.vremeKreiranja));
+
+            main.innerHTML = "";
+
+            const toolbar = document.createElement("div");
+            toolbar.className = "admin-toolbar";
+            toolbar.innerHTML = `
+                <div class="admin-section-title">
+                    <i class="fas fa-list-alt"></i> Porudzbine
+                    <span class="admin-count">${svePorudzbine.length}</span>
+                </div>
+            `;
+            main.appendChild(toolbar);
+
+            const tableWrap = document.createElement("div");
+            tableWrap.className = "admin-table-wrap";
+
+            if (svePorudzbine.length === 0) {
+                tableWrap.innerHTML = `
+                    <div class="admin-empty">
+                        <i class="fas fa-box-open"></i>
+                        <p>Nema porudzbina.</p>
+                    </div>`;
+            } else {
+                const statusMapa = {
+                    "NA_CEKANJU":  { label: "Na čekanju",  cls: "admin-kol-malo" },
+                    "PRIHVACENA":  { label: "Prihvaćena",  cls: "admin-kol-ima"  },
+                    "ODBIJENA":    { label: "Odbijena",     cls: "admin-kol-nema" },
+                    "POSLATA":     { label: "Poslata",      cls: "admin-kol-ima"  },
+                    "OTKAZANA":    { label: "Otkazana",     cls: "admin-kol-nema" },
+                    "DOSTAVLJENA": { label: "Dostavljena",  cls: "admin-kol-ima"  },
+                    "VRACENA":     { label: "Vraćena",      cls: "admin-kol-malo" },
+                };
+
+                const sledeci = {
+                    "NA_CEKANJU":  ["PRIHVACENA", "ODBIJENA"],
+                    "PRIHVACENA":  ["POSLATA", "OTKAZANA"],
+                    "POSLATA":     ["DOSTAVLJENA", "OTKAZANA"],
+                    "DOSTAVLJENA": ["VRACENA"],
+                };
+
+                const table = document.createElement("table");
+                table.className = "admin-table";
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Korisnik</th>
+                            <th>Datum</th>
+                            <th>Stavke</th>
+                            <th>Ukupno</th>
+                            <th>Status</th>
+                            <th>Promeni status</th>
+                        </tr>
+                    </thead>
+                `;
+                const tbody = document.createElement("tbody");
+
+                svePorudzbine.forEach(p => {
+                    const st = statusMapa[p.status] ?? { label: p.status, cls: "" };
+                    const datum = new Date(p.vremeKreiranja).toLocaleDateString("sr-RS", {
+                        day: "2-digit", month: "2-digit", year: "numeric",
+                        hour: "2-digit", minute: "2-digit"
+                    });
+                    const stavkeText = p.stavke.map(s => `${s.proizvodINaziv} x${s.kolicina}`).join(", ");
+                    const dostupni = sledeci[p.status] ?? [];
+
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td><strong>${p.username}</strong></td>
+                        <td style="white-space:nowrap;font-size:0.78rem">${datum}</td>
+                        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.78rem;color:var(--text-dim)" title="${stavkeText}">${stavkeText}</td>
+                        <td class="admin-td-cena">${p.ukupnaCena.toLocaleString()} rsd</td>
+                        <td><span class="admin-kolicina ${st.cls}">${st.label}</span></td>
+                        <td style="display:flex;align-items:center;gap:8px">
+                            <select class="sp-cat-select status-select" style="min-width:130px;border-radius:8px;padding:5px 30px 5px 10px;font-size:0.75rem" ${dostupni.length === 0 ? "disabled" : ""}>
+                                <option value="">-- Promeni --</option>
+                                ${dostupni.map(s => `<option value="${s}">${statusMapa[s]?.label ?? s}</option>`).join("")}
+                            </select>
+                            <button class="admin-btn admin-btn-delete obrisi-porudzbinu-btn" title="Obrisi porudzbinu">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+
+                    const sel = tr.querySelector(".status-select");
+                    sel.onchange = async () => {
+                        if (!sel.value) return;
+                        await this.promeniStatusPorudzbine(p.id, sel.value, tr);
+                    };
+
+                    tr.querySelector(".obrisi-porudzbinu-btn").onclick = () => this.obrisiPorudzbinu(p, tr);
+
+                    tbody.appendChild(tr);
+                });
+
+                table.appendChild(tbody);
+                tableWrap.appendChild(table);
+            }
+
+            main.appendChild(tableWrap);
+
+        } catch (err) {
+            document.getElementById("admin-main").innerHTML = `
+                <div class="admin-error"><i class="fas fa-exclamation-triangle"></i> ${err.message}</div>`;
+        }
+    }
+
+    async obrisiPorudzbinu(p, tr) {
+        if (!confirm(`Obrisati porudzbinu korisnika "${p.username}"?`)) return;
+        tr.style.opacity = "0.4";
+        tr.style.pointerEvents = "none";
+        try {
+            const res = await fetch(`${API_URL}/Porudzbina/ObrisiPorudzbinu/${p.id}`, {
+                method: "DELETE", headers: this.headers
+            });
+            if (res.ok) {
+                tr.classList.add("admin-row-removing");
+                setTimeout(() => this.renderPorudzbine(), 350);
+            } else {
+                alert(`Greska: ${await res.text()}`);
+                tr.style.opacity = "1";
+                tr.style.pointerEvents = "auto";
+            }
+        } catch {
+            tr.style.opacity = "1";
+            tr.style.pointerEvents = "auto";
+        }
+    }
+
+    async promeniStatusPorudzbine(id, status, tr) {
+        tr.style.opacity = "0.5";
+        tr.style.pointerEvents = "none";
+
+        try {
+            const res = await fetch(`${API_URL}/Porudzbina/IzmeniStatus/${id}/${status}`, {
+                method: "PUT", headers: this.headers
+            });
+
+            if (res.ok) {
+                setTimeout(() => this.renderPorudzbine(), 300);
+            } else {
                 const err = await res.text();
                 alert(`Greska: ${err}`);
                 tr.style.opacity = "1";
@@ -357,7 +674,9 @@ export class AdminPanel {
         }
     }
 
-    //  TAB: KORISNICI
+    // ================================================================
+    // TAB: KORISNICI
+    // ================================================================
     async renderKorisnici() {
         const main = document.getElementById("admin-main");
         main.innerHTML = `<div class="admin-loading"><i class="fas fa-spinner fa-spin"></i> Ucitavanje...</div>`;
@@ -404,7 +723,9 @@ export class AdminPanel {
                     </thead>
                 `;
                 const tbody = document.createElement("tbody");
-                const userData = (() => { try { return JSON.parse(localStorage.getItem("user")); } catch { return null; } })();
+                const userData = (() => {
+                    try { return JSON.parse(localStorage.getItem("user")); } catch { return null; }
+                })();
 
                 korisnici.forEach(k => {
                     const tr = document.createElement("tr");
@@ -460,8 +781,7 @@ export class AdminPanel {
                 tr.classList.add("admin-row-removing");
                 setTimeout(() => this.renderKorisnici(), 350);
             } else {
-                const err = await res.text();
-                alert(`Greska: ${err}`);
+                alert(`Greska: ${await res.text()}`);
                 tr.style.opacity = "1";
                 tr.style.pointerEvents = "auto";
             }
@@ -471,7 +791,9 @@ export class AdminPanel {
         }
     }
 
-    //  UCITAJ KATEGORIJE 
+    // ================================================================
+    // HELPERS
+    // ================================================================
     async ucitajKategorije() {
         try {
             const res = await fetch(`${API_URL}/Kategorija/VratiSveKategorije`, { headers: this.headers });
@@ -479,7 +801,6 @@ export class AdminPanel {
         } catch { /* nastavi bez kategorija */ }
     }
 
-    //  HELPER 
     setAdmMsg(el, type, text) {
         const icons = { success: "fa-check-circle", error: "fa-exclamation-circle", loading: "fa-spinner fa-spin" };
         el.className = `profil-msg profil-msg--${type}`;

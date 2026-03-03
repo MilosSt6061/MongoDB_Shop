@@ -5,7 +5,7 @@ export class Korpa {
         this.host       = host;
         this.onLogout   = onLogout;
         this.onNavigate = onNavigate || (() => {});
-        this.korpa      = null; // { id, username, stavke, ukupnaCena }
+        this.korpa      = null;
         this.headers    = {
             "Content-Type": "application/json",
             ...(localStorage.getItem("token")
@@ -25,7 +25,6 @@ export class Korpa {
         pageWrapper.className = "sp-page-wrapper";
         this.host.appendChild(pageWrapper);
 
-        //  HEADER 
         const header = document.createElement("div");
         header.className = "sp-header";
 
@@ -40,6 +39,7 @@ export class Korpa {
             { label: "SVI PROIZVODI", icon: "fa-th-large",      active: false, action: () => this.onNavigate("proizvodi") },
             { label: "MOJ PROFIL",    icon: "fa-user-circle",   active: false, action: () => this.onNavigate("profil") },
             { label: "KORPA",         icon: "fa-shopping-cart", active: true,  action: () => {} },
+            { label: "PORUDŽBINE",    icon: "fa-list-alt",      active: false, action: () => this.onNavigate("porudzbine") },
         ];
 
         navItems.forEach(item => {
@@ -60,13 +60,11 @@ export class Korpa {
         header.appendChild(headerNav);
         pageWrapper.appendChild(header);
 
-        //  MAIN 
         const main = document.createElement("div");
         main.className = "korpa-main";
         main.id = "korpa-main";
         pageWrapper.appendChild(main);
 
-        //  FOOTER 
         const footer = document.createElement("div");
         footer.className = "market-footer";
         footer.innerHTML = `
@@ -80,7 +78,6 @@ export class Korpa {
         await this.ucitajKorpu();
     }
 
-    //  UCITAJ KORPU 
     async ucitajKorpu() {
         const main = document.getElementById("korpa-main");
         main.innerHTML = `
@@ -110,14 +107,12 @@ export class Korpa {
         }
     }
 
-    //  RENDER KORPA 
     renderKorpa() {
         const main = document.getElementById("korpa-main");
         main.innerHTML = "";
 
         const stavke = this.korpa?.stavke ?? [];
 
-        // Naslov
         const titleRow = document.createElement("div");
         titleRow.className = "korpa-title-row";
         titleRow.innerHTML = `
@@ -155,7 +150,6 @@ export class Korpa {
         const layout = document.createElement("div");
         layout.className = "korpa-layout";
 
-        //  LISTA STAVKI 
         const lista = document.createElement("div");
         lista.className = "korpa-lista";
 
@@ -164,8 +158,7 @@ export class Korpa {
             row.className = "korpa-row";
             row.id = `korpa-row-${s.id}`;
 
-            const ukupnoStavka = s.cena;
-            const cenaPoKom    = s.kolicina > 0 ? Math.round(s.cena / s.kolicina) : s.cena;
+            const cenaPoKom = s.kolicina > 0 ? Math.round(s.cena / s.kolicina) : s.cena;
 
             row.innerHTML = `
                 <div class="korpa-row-img">
@@ -178,7 +171,7 @@ export class Korpa {
                 </div>
                 <div class="korpa-row-right">
                     <div class="korpa-qty-controls">
-                        <button class="korpa-qty-btn korpa-qty-minus" ${s.kolicina <= 1 ? "" : ""}>
+                        <button class="korpa-qty-btn korpa-qty-minus">
                             <i class="fas fa-minus"></i>
                         </button>
                         <span class="korpa-qty-num">${s.kolicina}</span>
@@ -186,7 +179,7 @@ export class Korpa {
                             <i class="fas fa-plus"></i>
                         </button>
                     </div>
-                    <div class="korpa-row-ukupno">${ukupnoStavka.toLocaleString()} rsd</div>
+                    <div class="korpa-row-ukupno">${s.cena.toLocaleString()} rsd</div>
                     <button class="korpa-ukloni-btn">
                         <i class="fas fa-trash"></i> Ukloni sve
                     </button>
@@ -194,24 +187,20 @@ export class Korpa {
             `;
 
             row.querySelector(".korpa-qty-minus").onclick = async () => {
-                const novaKol = s.kolicina - 1;
-                await this.izmeniKolicinu(s, novaKol, row);
+            await this.izmeniKolicinu(s, s.kolicina - 1, row);
             };
 
             row.querySelector(".korpa-qty-plus").onclick = async () => {
-                const novaKol = s.kolicina + 1;
-                await this.izmeniKolicinu(s, novaKol, row);
+            await this.dodajJedan(s, row);
             };
 
-            // Ukloni sve
             row.querySelector(".korpa-ukloni-btn").onclick = async () => {
-                await this.izmeniKolicinu(s, 0, row);
+            await this.izmeniKolicinu(s, 0, row);
             };
 
             lista.appendChild(row);
         });
 
-        //  SUMMARY PANEL 
         const summary = document.createElement("div");
         summary.className = "korpa-summary";
         summary.id = "korpa-summary";
@@ -224,8 +213,8 @@ export class Korpa {
     }
 
     renderSummary(container, stavke) {
-        const ukupno    = stavke.reduce((acc, s) => acc + s.cena, 0); 
-        const brStavki  = stavke.reduce((acc, s) => acc + s.kolicina, 0);
+        const ukupno   = stavke.reduce((acc, s) => acc + s.cena, 0);
+        const brStavki = stavke.reduce((acc, s) => acc + s.kolicina, 0);
 
         container.innerHTML = `
             <div class="korpa-summary-title">
@@ -246,7 +235,7 @@ export class Korpa {
                     <span>${ukupno.toLocaleString()} rsd</span>
                 </div>
             </div>
-            <button class="korpa-poruci-btn">
+            <button class="korpa-poruci-btn" id="korpa-poruci-btn">
                 <i class="fas fa-check-circle"></i> PORUCI
             </button>
             <button class="korpa-nastavi-btn" id="korpa-nastavi-btn">
@@ -255,10 +244,63 @@ export class Korpa {
         `;
 
         container.querySelector("#korpa-nastavi-btn").onclick = () => this.onNavigate("proizvodi");
-        container.querySelector(".korpa-poruci-btn").onclick  = () => console.log("Porucivanje — TODO");
+        container.querySelector("#korpa-poruci-btn").onclick  = () => this.poruci();
     }
 
-    // ── UKLONI IZ KORPE ───────────────────────────────────────────
+    async poruci() {
+        const btn = document.getElementById("korpa-poruci-btn");
+        if (!btn) return;
+        const username = this.userData?.username;
+        if (!username) return;
+
+        if (!confirm("Da li ste sigurni da zelite da porudzbinu?")) return;
+
+        const original = btn.innerHTML;
+        btn.disabled  = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Slanje...';
+
+        try {
+            const res = await fetch(`${API_URL}/Porudzbina/Poruci/${username}`, {
+                method:  "POST",
+                headers: this.headers
+            });
+
+            if (res.ok) {
+                this.prikaziUspeh();
+            } else {
+                const err = await res.text();
+                alert(`Greska: ${err}`);
+                btn.innerHTML = original;
+                btn.disabled  = false;
+            }
+        } catch {
+            alert("Serverska greska. Pokusajte ponovo.");
+            btn.innerHTML = original;
+            btn.disabled  = false;
+        }
+    }
+
+    prikaziUspeh() {
+        const main = document.getElementById("korpa-main");
+        main.innerHTML = `
+            <div class="korpa-uspeh">
+                <div class="korpa-uspeh-icon"><i class="fas fa-check-circle"></i></div>
+                <h2 class="korpa-uspeh-title">Porudzbina uspesno kreirana!</h2>
+                <p class="korpa-uspeh-sub">Vasa porudzbina ceka obradu. Pratite status u profilu.</p>
+                <div class="korpa-uspeh-btns">
+                    <button class="korpa-poruci-btn" id="btn-moje-porudzbine" style="width:auto;padding:12px 28px">
+                        <i class="fas fa-list-alt"></i> Moje porudzbine
+                    </button>
+                    <button class="korpa-nastavi-btn" id="btn-nastavi" style="width:auto;padding:12px 28px">
+                        <i class="fas fa-th-large"></i> Nastavi kupovinu
+                    </button>
+                </div>
+            </div>
+        `;
+        document.getElementById("btn-moje-porudzbine").onclick = () => this.onNavigate("porudzbine");
+        document.getElementById("btn-nastavi").onclick         = () => this.onNavigate("proizvodi");
+    }
+
     async izmeniKolicinu(stavka, novaKol, row) {
         const username   = this.userData?.username;
         const proizvodID = stavka.proizvodID ?? stavka.ProizvodID ?? "";
@@ -274,28 +316,11 @@ export class Korpa {
             });
 
             if (res.ok) {
-                // Vrati razliku u inventar: stara - nova (negativno = dodato u korpu)
-                const razlika = stavka.kolicina - novaKol; // +1 znači smanjeno, -1 znači povecano
-                if (razlika !== 0) {
-                    try {
-                        const invRes = await fetch(`${API_URL}/Inventar/VratiUkupnuKolicinuZaProizvod/${stavka.proizvodID}`, { headers: this.headers });
-                        if (invRes.ok) {
-                            const trenutna = await invRes.json();
-                            const novaInv  = Math.max(0, trenutna + razlika);
-                            await fetch(`${API_URL}/Inventar/IzmeniKolicinuProizvoda/${stavka.proizvodID}/${novaInv}`, {
-                                method: "PUT", headers: this.headers
-                            });
-                        }
-                    } catch { /* inventar update nije kriticno */ }
-                }
-
                 if (novaKol === 0) {
-                    // Animacija uklanjanja
                     row.classList.add("korpa-row-removing");
                     setTimeout(() => this.ucitajKorpu(), 350);
                 } else {
-                    // Samo osvezi korpu
-                    this.ucitajKorpu();
+                    await this.ucitajKorpu();
                 }
             } else {
                 const err = await res.text();
@@ -308,7 +333,39 @@ export class Korpa {
         }
     }
 
-    //  OCISTI KORPU 
+    async dodajJedan(stavka, row) {
+        row.querySelectorAll("button").forEach(b => b.disabled = true);
+
+        const cenaPoKom = stavka.kolicina > 0
+            ? Math.round(stavka.cena / stavka.kolicina)
+            : stavka.cena;
+
+        try {
+            const res = await fetch(
+                `${API_URL}/Korpa/DodajUKorpu/${this.userData?.username}`, {
+                method:  "POST",
+                headers: this.headers,
+                body: JSON.stringify({
+                    proizvodID:     stavka.proizvodID,
+                    proizvodINaziv: stavka.proizvodINaziv,
+                    kolicina:       1,
+                    cena:           cenaPoKom
+                })
+            });
+
+            if (res.ok) {
+                await this.ucitajKorpu();
+            } else {
+                const err = await res.text();
+                console.error("Greska dodavanja:", err);
+                row.querySelectorAll("button").forEach(b => b.disabled = false);
+            }
+        } catch (err) {
+            console.error("Greska:", err);
+            row.querySelectorAll("button").forEach(b => b.disabled = false);
+        }
+    }
+
     async ocistiKorpu(btn) {
         if (!confirm("Da li ste sigurni da zelite da ocistite korpu?")) return;
 

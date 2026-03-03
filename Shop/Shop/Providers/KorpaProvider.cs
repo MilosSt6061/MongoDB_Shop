@@ -54,7 +54,7 @@ namespace Shop.Providers
                 korpa.Stavke.Add(stavka);
             }
 
-            korpa.UkupnaCena = korpa.UkupnaCena + stavka.Cena;
+            korpa.UkupnaCena = korpa.Stavke.Sum(i => i.Cena);
 
             var result = await _korpe.ReplaceOneAsync(c => c.Id == korpa.Id, korpa);
             return result.ModifiedCount > 0;
@@ -76,6 +76,8 @@ namespace Shop.Providers
                 int c = postojeci.Cena / postojeci.Kolicina;
                 postojeci.Kolicina = num;
                 postojeci.Cena = num * c;
+                korpa.UkupnaCena = korpa.Stavke.Sum(i => i.Cena);
+
             }
 
             var result = await _korpe.ReplaceOneAsync(c => c.Id == korpa.Id, korpa);

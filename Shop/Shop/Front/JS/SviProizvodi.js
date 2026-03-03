@@ -11,7 +11,7 @@ export class SviProizvodi {
         this.katMapa        = {}; // id → naziv kategorije
         this.kolicinaMapa   = {}; // proizvodID → kolicina na stanju
         this.aktivnaKat     = "sve";
-        this.sortRedosljed  = null;
+        this.sortRedosled  = null;
         this.trenutnaStr    = 1;
         this.headers        = {
             "Content-Type": "application/json",
@@ -43,6 +43,7 @@ export class SviProizvodi {
             { label: "SVI PROIZVODI",  icon: "fa-th-large",      active: true,  action: () => this.draw() },
             { label: "MOJ PROFIL",     icon: "fa-user-circle",   active: false, action: () => this.onNavigate("profil") },
             { label: "KORPA",          icon: "fa-shopping-cart", active: false, action: () => this.onNavigate("korpa") },
+            { label: "PORUDŽBINE",    icon: "fa-list-alt",      active: false, action: () => this.onNavigate("porudzbine") },
         ];
 
         navItems.forEach(item => {
@@ -116,7 +117,7 @@ export class SviProizvodi {
         select.onchange = async () => {
             this.aktivnaKat    = select.value;
             this.trenutnaStr   = 1;
-            this.sortRedosljed = null;
+            this.sortRedosled = null;
             this.updateSortBtns();
             await this.ucitajProizvode();
         };
@@ -204,7 +205,6 @@ export class SviProizvodi {
 
             this.proizvodi = await res.json();
 
-            // Učitaj količine za sve proizvode paralelno
             await this.ucitajKolicine(this.proizvodi);
 
             this.applySort();
@@ -243,8 +243,8 @@ export class SviProizvodi {
     //  SORT 
     applySort() {
         let rezultat = [...this.proizvodi];
-        if (this.sortRedosljed === "asc")  rezultat.sort((a, b) => a.cena - b.cena);
-        if (this.sortRedosljed === "desc") rezultat.sort((a, b) => b.cena - a.cena);
+        if (this.sortRedosled === "asc")  rezultat.sort((a, b) => a.cena - b.cena);
+        if (this.sortRedosled === "desc") rezultat.sort((a, b) => b.cena - a.cena);
         this.sortirani = rezultat;
         this.renderGrid();
         this.renderPaginacija();
@@ -252,8 +252,8 @@ export class SviProizvodi {
         this.updateSortBtns();
     }
 
-    setSort(smjer) {
-        this.sortRedosljed = smjer === this.sortRedosljed ? null : smjer;
+    setSort(smer) {
+        this.sortRedosled = smer === this.sortRedosled ? null : smer;
         this.trenutnaStr   = 1;
         this.applySort();
     }
@@ -446,8 +446,8 @@ export class SviProizvodi {
 
     //  SORT BUTTONS STATE 
     updateSortBtns() {
-        document.getElementById("sort-asc") ?.classList.toggle("sp-sort-active", this.sortRedosljed === "asc");
-        document.getElementById("sort-desc")?.classList.toggle("sp-sort-active", this.sortRedosljed === "desc");
+        document.getElementById("sort-asc") ?.classList.toggle("sp-sort-active", this.sortRedosled === "asc");
+        document.getElementById("sort-desc")?.classList.toggle("sp-sort-active", this.sortRedosled === "desc");
     }
 
     //  DODAJ U KORPU 
@@ -481,19 +481,10 @@ export class SviProizvodi {
                 btn.innerHTML = '<i class="fas fa-check"></i> Dodato!';
                 btn.classList.add("sp-btn-added");
 
-                // Smanji inventar za 1 i re-fetch tacnu vrednost
-                const trenutna = this.kolicinaMapa[p.id] ?? 0;
-                const nova     = Math.max(0, trenutna - 1);
-                try {
-                    await fetch(`${API_URL}/Inventar/IzmeniKolicinuProizvoda/${p.id}/${nova}`, {
-                        method: "PUT", headers: this.headers
-                    });
-                    this.kolicinaMapa[p.id] = nova;
-                } catch { /* nastavi bez greske */ }
-
                 setTimeout(() => {
                     btn.innerHTML = originalHTML;
                     btn.disabled  = (this.kolicinaMapa[p.id] ?? 0) === 0;
+                    btn.disabled  = false;
                     btn.classList.remove("sp-btn-added");
                     this.renderGrid();
                 }, 1000);

@@ -3,12 +3,12 @@ import { SviProizvodi } from "./SviProizvodi.js";
 import { MojProfil }   from "./MojProfil.js";
 import { Korpa }       from "./Korpa.js";
 import { AdminPanel }  from "./AdminPanel.js";
+import { Porudzbine } from "./Porudzbine.js";
 
 const app = document.getElementById("app");
 const pocetna = new Pocetna(app, onLoginSuccess);
 
 function onLoginSuccess(user) {
-    console.log("Korisnik prijavljen:", user.username, "| Rola:", user.role);
     if (user.role === "admin") {
         navigate("admin");
     } else {
@@ -29,6 +29,8 @@ function navigate(stranica) {
         new Korpa(app, onLogout, navigate).draw();
     } else if (stranica === "admin") {
         new AdminPanel(app, onLogout).draw();
+    } else if (stranica === "porudzbine") {
+        new Porudzbine(app, onLogout, navigate).draw();
     }
 }
 
