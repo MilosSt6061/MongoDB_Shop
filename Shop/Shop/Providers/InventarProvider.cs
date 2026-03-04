@@ -28,7 +28,7 @@ namespace Shop.Providers
         {
             var item = await _inventar.Find(i => i.ProizvodID == proizvodID).FirstOrDefaultAsync();
             if(item == null) throw new Exception("Nepostojeci proizvod");
-            return item.Kolicina + item.RezervisanaKolicina;
+            return item.Kolicina - item.RezervisanaKolicina;
         }
 
         public async Task<bool> IzmeniKolicinuProizvoda(string proizvodID, int kolicina)

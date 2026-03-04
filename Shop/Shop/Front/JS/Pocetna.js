@@ -185,7 +185,8 @@ export class Pocetna {
                         overlay.remove();
                         this.onLoginSuccess(data);
                     } else {
-                        const error = await response.text();
+                        const msg = await response.json();
+                        const error = msg.invalidMessage;
                         alert("Greška: " + error);
                     }
                 } catch (err) {

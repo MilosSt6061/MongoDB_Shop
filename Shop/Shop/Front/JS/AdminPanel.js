@@ -293,12 +293,11 @@ export class AdminPanel {
                     headers: this.headers,
                     body:    JSON.stringify({ id: postojeci.id, naziv, opis, cena, kategorijaID: katID })
                 });
-                if (!res.ok) throw new Error(await res.text());
 
                 const invRes = await fetch(`${API_URL}/Inventar/IzmeniKolicinuProizvoda/${postojeci.id}/${kolicina}`, {
                     method: "PUT", headers: this.headers
                 });
-                if (!invRes.ok) throw new Error(await invRes.text());
+                if (!res.ok && !invRes.ok) throw new Error("Izmene neuspesno izvrsene!");
             }
 
             this.setAdmMsg(msgEl, "success", jeNovi ? "Proizvod dodat!" : "Izmene sacuvane!");

@@ -99,10 +99,10 @@ export class MojProfil {
 
         const podaciFields = [
             { id: "profil-username", label: "Username",     type: "text",  key: "username", icon: "fa-at"       },
-            { id: "profil-ime",      label: "Ime",           type: "text",  key: "ime",      icon: "fa-user"     },
-            { id: "profil-prezime",  label: "Prezime",       type: "text",  key: "prezime",  icon: "fa-user"     },
+            { id: "profil-ime",      label: "Ime",           type: "text",  key: "name",      icon: "fa-user"     },
+            { id: "profil-prezime",  label: "Prezime",       type: "text",  key: "lastname",  icon: "fa-user"     },
             { id: "profil-email",    label: "Email adresa",  type: "email", key: "email",    icon: "fa-envelope" },
-            { id: "profil-broj",     label: "Broj telefona", type: "text",  key: "broj",     icon: "fa-phone"    },
+            { id: "profil-broj",     label: "Broj telefona", type: "text",  key: "number",     icon: "fa-phone"    },
         ];
 
         podaciFields.forEach(f => {
